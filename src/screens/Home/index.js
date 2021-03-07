@@ -9,32 +9,81 @@ import {
   StatusBar,
 } from 'react-native';
 import {Input} from 'react-native-elements';
-import {
-  Asset,
-  Constants,
-  FileSystem,
-  Permissions,
-} from 'react-native-unimodules';
-import Icon from 'react-native-vector-icons/Entypo'; //entypo , feather ,fantisto,Ionicons
+import {FileSystem, Permissions} from 'react-native-unimodules';
+import uuid from 'react-native-uuid';
+import {Alert, Platform} from 'react-native';
+import * as MediaLibrary from 'expo-media-library';
+import Icon from 'react-native-vector-icons/Entypo'; // entypo ,feather ,fantisto ,Ionicons
 import ImageBackground from '../../components/ImageBackground';
 import {globalStyles} from '../../constants';
+import parseUrl from '../../utils/parseUrl';
+import extractFileUrl from '../../utils/extractFileUrl';
+import InstagramRequest from '../../services/instagramRequest';
 
 const Home = () => {
   const [fileUrl, setFileUrl] = useState('');
-
+  const [mediaType, setMediaType] = useState('');
   const [enteredUrl, setEnteredUrl] = useState('');
 
   useEffect(() => {
-    console.log(Constants.systemFonts);
+    onRequestPermission();
   }, []);
+
+  const onRequestPermission = async () => {
+    await MediaLibrary.requestPermissionsAsync();
+  };
 
   const onChange = (text) => {
     setEnteredUrl(text);
     console.log(text);
   };
 
+  const handleCheckUrl = async () => {
+    console.log('check url', enteredUrl);
+    const {url: urlParsed, error: parseError} = parseUrl(enteredUrl);
+    if (parseError) {
+      Alert.alert('Error', 'Invalid url');
+      return;
+    }
+    const fileData = await InstagramRequest.getFileData(urlParsed);
+    const {data, error, type} = extractFileUrl(fileData);
+    console.log('error', error, data, type);
+    if (error) {
+      Alert.alert('Error', 'Try again');
+      return;
+    }
+    setEnteredUrl('');
+    setFileUrl(data);
+    setMediaType(type);
+    console.log(data, type);
+    setTimeout(() => {
+      downloadFile();
+    }, 1000);
+  };
+
+  const downloadFile = () => {
+    FileSystem.downloadAsync(
+      fileUrl,
+      FileSystem.documentDirectory +
+        uuid.v4() +
+        (mediaType === 'GraphVideo' ? '.mp4' : '.jpg'),
+    )
+      .then(async ({uri}) => {
+        MediaLibrary.saveToLibraryAsync(uri).then(() => {
+          Alert.alert('Downloaded succesfully', 'Visit your gallery');
+        });
+
+        setMediaType(null);
+        setFileUrl(null);
+      })
+      .catch((error) => {
+        Alert.alert('Error', JSON.stringify(error));
+      });
+  };
+
   const onPressDownload = () => {
     console.log('download', enteredUrl);
+    handleCheckUrl();
   };
 
   return (
