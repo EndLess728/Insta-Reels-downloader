@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -9,6 +9,12 @@ import {
   StatusBar,
 } from 'react-native';
 import {Input} from 'react-native-elements';
+import {
+  Asset,
+  Constants,
+  FileSystem,
+  Permissions,
+} from 'react-native-unimodules';
 import Icon from 'react-native-vector-icons/Entypo'; //entypo , feather ,fantisto,Ionicons
 import ImageBackground from '../../components/ImageBackground';
 import {globalStyles} from '../../constants';
@@ -17,6 +23,10 @@ const Home = () => {
   const [fileUrl, setFileUrl] = useState('');
 
   const [enteredUrl, setEnteredUrl] = useState('');
+
+  useEffect(() => {
+    console.log(Constants.systemFonts);
+  }, []);
 
   const onChange = (text) => {
     setEnteredUrl(text);
