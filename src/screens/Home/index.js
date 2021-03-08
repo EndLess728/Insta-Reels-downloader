@@ -13,6 +13,7 @@ import {FileSystem, Permissions} from 'react-native-unimodules';
 import uuid from 'react-native-uuid';
 import {Alert, Platform} from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
+import ProgressCircle from 'react-native-progress-circle';
 import Icon from 'react-native-vector-icons/Entypo'; // entypo ,feather ,fantisto ,Ionicons
 import ImageBackground from '../../components/ImageBackground';
 import {globalStyles} from '../../constants';
@@ -24,6 +25,8 @@ const Home = () => {
   const [fileUrl, setFileUrl] = useState('');
   const [mediaType, setMediaType] = useState('');
   const [enteredUrl, setEnteredUrl] = useState('');
+  const [currentProgress, setProgress] = useState(0);
+  const [loadingState, setLoadingState] = useState(false);
 
   useEffect(() => {
     onRequestPermission();
@@ -55,31 +58,63 @@ const Home = () => {
     setEnteredUrl('');
     setFileUrl(data);
     setMediaType(type);
-    console.log(data, type);
-    setTimeout(() => {
-      downloadFile();
-    }, 1000);
+    downloadFile(data, type);
   };
 
-  const downloadFile = () => {
-    FileSystem.downloadAsync(
-      fileUrl,
+  const callback = (downloadProgress) => {
+    const progress =
+      downloadProgress.totalBytesWritten /
+      downloadProgress.totalBytesExpectedToWrite;
+    console.log(downloadProgress, progress.toFixed(2) * 100, '%');
+    setProgress(progress * 100);
+    if (progress >= 1 || progress < 0) {
+      setProgress(0);
+      setLoadingState(false);
+    }
+  };
+
+  const downloadFile = async (url, type) => {
+    setLoadingState(true);
+    const downloadResumable = FileSystem.createDownloadResumable(
+      url,
       FileSystem.documentDirectory +
-        uuid.v4() +
-        (mediaType === 'GraphVideo' ? '.mp4' : '.jpg'),
-    )
-      .then(async ({uri}) => {
-        MediaLibrary.saveToLibraryAsync(uri).then(() => {
-          Alert.alert('Downloaded succesfully', 'Visit your gallery');
-        });
+        uuid.v1() +
+        (type === 'GraphVideo' ? '.mp4' : '.jpg'),
+      {},
+      callback,
+    );
 
-        setMediaType(null);
-        setFileUrl(null);
-      })
-      .catch((error) => {
-        Alert.alert('Error', JSON.stringify(error));
+    try {
+      const {uri} = await downloadResumable.downloadAsync();
+
+      console.log('Finished downloading ', uri);
+      MediaLibrary.saveToLibraryAsync(uri).then(() => {
+        Alert.alert('Downloaded succesfully', 'Visit your gallery');
       });
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'something went wrong');
+    }
   };
+
+  // FileSystem.downloadAsync(
+  //   url,
+  //   FileSystem.documentDirectory +
+  //     uuid.v1() +
+  //     (type === 'GraphVideo' ? '.mp4' : '.jpg'),
+  // )
+  //   .then(async ({uri}) => {
+  //     MediaLibrary.saveToLibraryAsync(uri).then(() => {
+  //       Alert.alert('Downloaded succesfully', 'Visit your gallery');
+  //     });
+
+  //     setMediaType(null);
+  //     setFileUrl(null);
+  //   })
+  //   .catch((error) => {
+  //     Alert.alert('Error', JSON.stringify(error));
+  //   });
+  // };
 
   const onPressDownload = () => {
     console.log('download', enteredUrl);
@@ -135,6 +170,31 @@ const Home = () => {
             </Text>
           </TouchableOpacity>
         </View>
+        {loadingState && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            }}>
+            <ProgressCircle
+              percent={currentProgress}
+              radius={70}
+              borderWidth={10}
+              color="red"
+              shadowColor="#999"
+              bgColor="#fff">
+              <Text style={{fontSize: 28}}>{`${currentProgress.toFixed(
+                2,
+              )}%`}</Text>
+            </ProgressCircle>
+          </View>
+        )}
       </ImageBackground>
     </SafeAreaView>
   );
