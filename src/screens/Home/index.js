@@ -22,8 +22,6 @@ import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
 
 const Home = () => {
-  const [fileUrl, setFileUrl] = useState('');
-  const [mediaType, setMediaType] = useState('');
   const [enteredUrl, setEnteredUrl] = useState('');
   const [currentProgress, setProgress] = useState(0);
   const [loadingState, setLoadingState] = useState(false);
@@ -48,6 +46,7 @@ const Home = () => {
       Alert.alert('Error', 'Invalid url');
       return;
     }
+    console.log('parsed url', urlParsed);
     const fileData = await InstagramRequest.getFileData(urlParsed);
     const {data, error, type} = extractFileUrl(fileData);
     console.log('error', error, data, type);
@@ -56,8 +55,6 @@ const Home = () => {
       return;
     }
     setEnteredUrl('');
-    setFileUrl(data);
-    setMediaType(type);
     downloadFile(data, type);
   };
 
@@ -88,33 +85,20 @@ const Home = () => {
       const {uri} = await downloadResumable.downloadAsync();
 
       console.log('Finished downloading ', uri);
-      MediaLibrary.saveToLibraryAsync(uri).then(() => {
-        Alert.alert('Downloaded succesfully', 'Visit your gallery');
-      });
+
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      const album = await MediaLibrary.getAlbumAsync('Insta Reels');
+      if (album == null) {
+        await MediaLibrary.createAlbumAsync('Insta Reels', asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+      Alert.alert('Downloaded succesfully', 'Visit your gallery');
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'something went wrong');
     }
   };
-
-  // FileSystem.downloadAsync(
-  //   url,
-  //   FileSystem.documentDirectory +
-  //     uuid.v1() +
-  //     (type === 'GraphVideo' ? '.mp4' : '.jpg'),
-  // )
-  //   .then(async ({uri}) => {
-  //     MediaLibrary.saveToLibraryAsync(uri).then(() => {
-  //       Alert.alert('Downloaded succesfully', 'Visit your gallery');
-  //     });
-
-  //     setMediaType(null);
-  //     setFileUrl(null);
-  //   })
-  //   .catch((error) => {
-  //     Alert.alert('Error', JSON.stringify(error));
-  //   });
-  // };
 
   const onPressDownload = () => {
     console.log('download', enteredUrl);
