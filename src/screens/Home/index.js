@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/Entypo'; // entypo ,feather ,fantist
 import ImageBackground from '../../components/ImageBackground';
 import {globalStyles} from '../../constants';
 import parseUrl from '../../utils/parseUrl';
+import getDateTime from '../../utils/getDateTime';
 import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
 
@@ -48,14 +49,14 @@ const Home = () => {
     }
     console.log('parsed url', urlParsed);
     const fileData = await InstagramRequest.getFileData(urlParsed);
-    const {data, error, type} = extractFileUrl(fileData);
-    console.log('error', error, data, type);
+    const {data, error, type, pageUsername} = extractFileUrl(fileData);
+    console.log('page username', pageUsername);
     if (error) {
       Alert.alert('Error', 'Try again');
       return;
     }
     setEnteredUrl('');
-    downloadFile(data, type);
+    downloadFile(data, type, pageUsername);
   };
 
   const callback = (downloadProgress) => {
@@ -70,12 +71,13 @@ const Home = () => {
     }
   };
 
-  const downloadFile = async (url, type) => {
+  const downloadFile = async (url, type, pageUsername) => {
     setLoadingState(true);
     const downloadResumable = FileSystem.createDownloadResumable(
       url,
       FileSystem.documentDirectory +
-        uuid.v1() +
+        pageUsername +
+        getDateTime() +
         (type === 'GraphVideo' ? '.mp4' : '.jpg'),
       {},
       callback,
