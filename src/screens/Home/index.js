@@ -21,11 +21,17 @@ import parseUrl from '../../utils/parseUrl';
 import getDateTime from '../../utils/getDateTime';
 import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
+import {Video} from 'expo-av';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const Home = () => {
   const [enteredUrl, setEnteredUrl] = useState('');
   const [currentProgress, setProgress] = useState(0);
   const [loadingState, setLoadingState] = useState(false);
+  const [localFilURI, setLocalFileURI] = useState('');
 
   useEffect(() => {
     onRequestPermission();
@@ -95,7 +101,8 @@ const Home = () => {
       } else {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
       }
-      Alert.alert('Downloaded succesfully', 'Visit your gallery');
+      setLocalFileURI(uri);
+      Alert.alert('Downloaded successfully', 'Visit your gallery');
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'something went wrong');
@@ -155,7 +162,26 @@ const Home = () => {
               Download
             </Text>
           </TouchableOpacity>
+          <View
+            style={{
+              marginTop: 10,
+              justifyContent: 'center',
+              alignSelf: 'center',
+            }}>
+            <Video
+              source={{
+                uri: localFilURI,
+              }}
+              rate={1.0}
+              volume={1.0}
+              shouldPlay={true}
+              resizeMode={Video.RESIZE_MODE_CONTAIN}
+              useNativeControls={true}
+              style={{width: wp('80%'), height: wp('80%')}}
+            />
+          </View>
         </View>
+
         {loadingState && (
           <View
             style={{
