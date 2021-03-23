@@ -20,6 +20,7 @@ import parseUrl from '../../utils/parseUrl';
 import getDateTime from '../../utils/getDateTime';
 import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
+import {AdMobBanner, AdMobInterstitial} from 'expo-ads-admob';
 import {downloadToFolder} from 'expo-file-dl';
 import * as Notifications from 'expo-notifications';
 import {
@@ -50,6 +51,8 @@ const Home = () => {
   const [currentProgress, setProgress] = useState(0);
   const [loadingState, setLoadingState] = useState(false);
   const [localFilURI, setLocalFileURI] = useState('');
+  const admobnterstitial = 'ca-app-pub-3940256099942544/8691691433'; //'ca-app-pub-8434999546031659/9161574888';
+  const admobBanner = 'ca-app-pub-3940256099942544/6300978111'; //'ca-app-pub-8434999546031659/8050661438';
 
   async function setNotificationChannel() {
     const loadingChannel: NotificationChannel | null = await Notifications.getNotificationChannelAsync(
@@ -76,7 +79,14 @@ const Home = () => {
   useEffect(() => {
     onRequestPermission();
     setNotificationChannel();
+    // AdMobInterstitial.setAdUnitID(admobnterstitial);
   }, []);
+
+  const fireInterstitial = async () => {
+    console.log('hit ads');
+    await AdMobInterstitial.requestAdAsync();
+    await AdMobInterstitial.showAdAsync();
+  };
 
   const onRequestPermission = async () => {
     await MediaLibrary.requestPermissionsAsync();
@@ -118,12 +128,45 @@ const Home = () => {
     }
   };
 
+  const printValue = () => {
+    console.log('hello bro');
+  };
+
   const downloadFile = async (url, type, pageUsername) => {
     setLoadingState(true);
     const fileName =
       pageUsername + getDateTime() + (type === 'GraphVideo' ? '.mp4' : '.jpg');
 
+    AdMobInterstitial.setAdUnitID(admobnterstitial); // Test ID, Replace with your-admob-unit-id
+
+    AdMobInterstitial.addEventListener('interstitialDidLoad', () =>
+      console.log('AdMobInterstitial adLoaded'),
+    );
+    AdMobInterstitial.addEventListener('interstitialDidFailToLoad', (error) =>
+      console.warn(error),
+    );
+    AdMobInterstitial.addEventListener(
+      'interstitialDidOpen',
+      () => console.log('AdMobInterstitial => adOpened'),
+      //await downloadToFolder(url, fileName, 'Insta Reels New', channelId),
+    );
+    AdMobInterstitial.addEventListener('interstitialDidClose', () => {
+      console.log('AdMobInterstitial => adClosed');
+      // AdMobInterstitial.requestAd().catch((error) => console.warn(error));
+    });
+    AdMobInterstitial.addEventListener('interstitialWillLeaveApplication', () =>
+      console.log('AdMobInterstitial => adLeftApplication'),
+    );
+
+    await AdMobInterstitial.requestAdAsync({servePersonalizedAds: true});
+    await AdMobInterstitial.showAdAsync();
+
     await downloadToFolder(url, fileName, 'Insta Reels New', channelId);
+
+    // AdMobInterstitial.setAdUnitID(admobnterstitial);
+    // await AdMobInterstitial.requestAdAsync();
+    // await AdMobInterstitial.showAdAsync();
+    //  fireInterstitial();
     // const downloadResumable = FileSystem.createDownloadResumable(
     //   url,
     //   FileSystem.documentDirectory +
@@ -208,6 +251,14 @@ const Home = () => {
               Download
             </Text>
           </TouchableOpacity>
+          <View
+            style={{
+              backgroundColor: 'red',
+              marginTop: 20,
+              alignSelf: 'center',
+            }}>
+            <AdMobBanner bannerSize="leaderboard" adUnitID={admobBanner} />
+          </View>
           <View
             style={{
               marginTop: 10,

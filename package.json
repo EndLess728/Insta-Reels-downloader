@@ -18,6 +18,7 @@
     "clean": "npm run clean-npm && npm run clean-android && npm run clean-ios"
   },
   "dependencies": {
+    "expo-ads-admob": "^9.0.0",
     "expo-av": "^9.0.0",
     "expo-file-dl": "^1.0.4",
     "expo-media-library": "^11.0.0",

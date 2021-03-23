@@ -3,7 +3,10 @@
   "displayName": "Insta_Reels_Downloader",
   "expo": {
     "android": {
-      "useNextNotificationsApi": true
+      "useNextNotificationsApi": true,
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-8434999546031659~4292391589"
+      }
     }
   }
 }
