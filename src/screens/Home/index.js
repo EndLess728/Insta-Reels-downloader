@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {Input} from 'react-native-elements';
 import {FileSystem, Permissions} from 'react-native-unimodules';
-import uuid from 'react-native-uuid';
 import {Alert, Platform} from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import ProgressCircle from 'react-native-progress-circle';
@@ -21,11 +20,30 @@ import parseUrl from '../../utils/parseUrl';
 import getDateTime from '../../utils/getDateTime';
 import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
+import {downloadToFolder} from 'expo-file-dl';
+import * as Notifications from 'expo-notifications';
+import {
+  AndroidImportance,
+  AndroidNotificationVisibility,
+  NotificationChannel,
+  NotificationChannelInput,
+  NotificationContentInput,
+} from 'expo-notifications';
 import {Video} from 'expo-av';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+const channelId = 'DownloadInfo';
 
 const Home = () => {
   const [enteredUrl, setEnteredUrl] = useState('');
@@ -33,8 +51,31 @@ const Home = () => {
   const [loadingState, setLoadingState] = useState(false);
   const [localFilURI, setLocalFileURI] = useState('');
 
+  async function setNotificationChannel() {
+    const loadingChannel: NotificationChannel | null = await Notifications.getNotificationChannelAsync(
+      channelId,
+    );
+
+    // if we didn't find a notification channel set how we like it, then we create one
+    if (loadingChannel == null) {
+      const channelOptions: NotificationChannelInput = {
+        name: channelId,
+        importance: AndroidImportance.HIGH,
+        lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
+        sound: 'default',
+        vibrationPattern: [250],
+        enableVibrate: true,
+      };
+      await Notifications.setNotificationChannelAsync(
+        channelId,
+        channelOptions,
+      );
+    }
+  }
+
   useEffect(() => {
     onRequestPermission();
+    setNotificationChannel();
   }, []);
 
   const onRequestPermission = async () => {
@@ -79,34 +120,39 @@ const Home = () => {
 
   const downloadFile = async (url, type, pageUsername) => {
     setLoadingState(true);
-    const downloadResumable = FileSystem.createDownloadResumable(
-      url,
-      FileSystem.documentDirectory +
-        pageUsername +
-        getDateTime() +
-        (type === 'GraphVideo' ? '.mp4' : '.jpg'),
-      {},
-      callback,
-    );
+    const fileName =
+      pageUsername + getDateTime() + (type === 'GraphVideo' ? '.mp4' : '.jpg');
 
-    try {
-      const {uri} = await downloadResumable.downloadAsync();
+    await downloadToFolder(url, fileName, 'Insta Reels New', channelId);
+    // const downloadResumable = FileSystem.createDownloadResumable(
+    //   url,
+    //   FileSystem.documentDirectory +
+    //     pageUsername +
+    //     getDateTime() +
+    //     (type === 'GraphVideo' ? '.mp4' : '.jpg'),
+    //   {},
+    //   callback,
+    // );
 
-      console.log('Finished downloading ', uri);
+    // try {
+    //   const {uri} = await downloadResumable.downloadAsync();
 
-      const asset = await MediaLibrary.createAssetAsync(uri);
-      const album = await MediaLibrary.getAlbumAsync('Insta Reels');
-      if (album == null) {
-        await MediaLibrary.createAlbumAsync('Insta Reels', asset, false);
-      } else {
-        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-      }
-      setLocalFileURI(uri);
-      Alert.alert('Downloaded successfully', 'Visit your gallery');
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'something went wrong');
-    }
+    //   console.log('Finished downloading ', uri);
+    //   //await downloadToFolder(uri, 'testing.mp4', 'Download', channelId);
+
+    //   const asset = await MediaLibrary.createAssetAsync(uri);
+    //   const album = await MediaLibrary.getAlbumAsync('Insta Reels');
+    //   if (album == null) {
+    //     await MediaLibrary.createAlbumAsync('Insta Reels', asset, false);
+    //   } else {
+    //     await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+    //   }
+    //   setLocalFileURI(uri);
+    //   Alert.alert('Downloaded successfully', 'Visit your gallery');
+    // } catch (e) {
+    //   console.error(e);
+    //   Alert.alert('Error', 'something went wrong');
+    // }
   };
 
   const onPressDownload = () => {
@@ -182,7 +228,7 @@ const Home = () => {
           </View>
         </View>
 
-        {loadingState && (
+        {/* {loadingState && (
           <View
             style={{
               position: 'absolute',
@@ -206,7 +252,7 @@ const Home = () => {
               )}%`}</Text>
             </ProgressCircle>
           </View>
-        )}
+        )} */}
       </ImageBackground>
     </SafeAreaView>
   );

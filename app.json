@@ -1,4 +1,9 @@
 {
   "name": "Insta_Reels_Downloader",
-  "displayName": "Insta_Reels_Downloader"
+  "displayName": "Insta_Reels_Downloader",
+  "expo": {
+    "android": {
+      "useNextNotificationsApi": true
+    }
+  }
 }
