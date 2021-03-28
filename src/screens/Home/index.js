@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
   View,
   Text,
   StatusBar,
@@ -20,7 +21,7 @@ import parseUrl from '../../utils/parseUrl';
 import getDateTime from '../../utils/getDateTime';
 import extractFileUrl from '../../utils/extractFileUrl';
 import InstagramRequest from '../../services/instagramRequest';
-import {AdMobBanner, AdMobInterstitial} from 'expo-ads-admob';
+import {AdMobBanner, AdMobInterstitial, AdMobRewarded} from 'expo-ads-admob';
 import {downloadToFolder} from 'expo-file-dl';
 import * as Notifications from 'expo-notifications';
 import {
@@ -30,6 +31,17 @@ import {
   NotificationChannelInput,
   NotificationContentInput,
 } from 'expo-notifications';
+import {
+  BallIndicator,
+  BarIndicator,
+  DotIndicator,
+  MaterialIndicator,
+  PacmanIndicator,
+  PulseIndicator,
+  SkypeIndicator,
+  UIActivityIndicator,
+  WaveIndicator,
+} from 'react-native-indicators';
 import {Video} from 'expo-av';
 import {
   widthPercentageToDP as wp,
@@ -51,8 +63,10 @@ const Home = () => {
   const [currentProgress, setProgress] = useState(0);
   const [loadingState, setLoadingState] = useState(false);
   const [localFilURI, setLocalFileURI] = useState('');
-  const admobnterstitial = 'ca-app-pub-3940256099942544/8691691433'; //'ca-app-pub-8434999546031659/9161574888';
-  const admobBanner = 'ca-app-pub-3940256099942544/6300978111'; //'ca-app-pub-8434999546031659/8050661438';
+  const [videoUrl, setVideoUrl] = useState('');
+  const admobnterstitial = 'ca-app-pub-4743628857592113/7634608901'; //'ca-app-pub-8434999546031659/9161574888';
+  const admobBanner = 'ca-app-pub-4743628857592113/8565203737'; //'ca-app-pub-8434999546031659/8050661438';
+  const admobRewarded = 'ca-app-pub-4743628857592113/2738818524';
 
   async function setNotificationChannel() {
     const loadingChannel: NotificationChannel | null = await Notifications.getNotificationChannelAsync(
@@ -84,8 +98,32 @@ const Home = () => {
 
   const fireInterstitial = async () => {
     console.log('hit ads');
-    await AdMobInterstitial.requestAdAsync();
-    await AdMobInterstitial.showAdAsync();
+    await AdMobRewarded.setAdUnitID(admobRewarded); // Test ID, Replace with your-admob-unit-id
+    await AdMobRewarded.requestAdAsync();
+    // await AdMobRewarded.requestAdAsync({servePersonalizedAds: true});
+    await AdMobRewarded.showAdAsync();
+
+    AdMobRewarded.addEventListener(
+      'rewardedVideoDidLoad',
+      () => console.log('AdMobInterstitial adLoaded'),
+      //setLoadingState(false),
+    );
+    AdMobRewarded.addEventListener('rewardedVideoDidFailToLoad', (error) =>
+      console.warn(error),
+    );
+    AdMobRewarded.addEventListener(
+      'rewardedVideoDidOpen',
+      () => console.log('AdMobInterstitial => adOpened'),
+      //await downloadToFolder(url, fileName, 'Insta Reels New', channelId),
+    );
+    AdMobRewarded.addEventListener('rewardedVideoDidClose', () => {
+      console.log('AdMobInterstitial => adClosed');
+      setLoadingState(false);
+      // AdMobInterstitial.requestAd().catch((error) => console.warn(error));
+    });
+    AdMobRewarded.addEventListener('rewardedVideoWillLeaveApplication', () =>
+      console.log('AdMobInterstitial => adLeftApplication'),
+    );
   };
 
   const onRequestPermission = async () => {
@@ -101,6 +139,7 @@ const Home = () => {
     console.log('check url', enteredUrl);
     const {url: urlParsed, error: parseError} = parseUrl(enteredUrl);
     if (parseError) {
+      setLoadingState(false);
       Alert.alert('Error', 'Invalid url');
       return;
     }
@@ -109,97 +148,30 @@ const Home = () => {
     const {data, error, type, pageUsername} = extractFileUrl(fileData);
     console.log('page username', pageUsername);
     if (error) {
+      setLoadingState(false);
       Alert.alert('Error', 'Try again');
       return;
     }
     setEnteredUrl('');
+
     downloadFile(data, type, pageUsername);
   };
 
-  const callback = (downloadProgress) => {
-    const progress =
-      downloadProgress.totalBytesWritten /
-      downloadProgress.totalBytesExpectedToWrite;
-    console.log(downloadProgress, progress.toFixed(2) * 100, '%');
-    setProgress(progress * 100);
-    if (progress >= 1 || progress < 0) {
-      setProgress(0);
-      setLoadingState(false);
-    }
-  };
-
-  const printValue = () => {
-    console.log('hello bro');
-  };
-
   const downloadFile = async (url, type, pageUsername) => {
-    setLoadingState(true);
+    console.log('hihi0', url);
+    setVideoUrl(url);
     const fileName =
       pageUsername + getDateTime() + (type === 'GraphVideo' ? '.mp4' : '.jpg');
-
-    AdMobInterstitial.setAdUnitID(admobnterstitial); // Test ID, Replace with your-admob-unit-id
-
-    AdMobInterstitial.addEventListener('interstitialDidLoad', () =>
-      console.log('AdMobInterstitial adLoaded'),
+    fireInterstitial();
+    await downloadToFolder(url, fileName, 'Insta Reels New', channelId).then(
+      setLoadingState(false),
+      console.log('donwloading finishedqwaaa'),
     );
-    AdMobInterstitial.addEventListener('interstitialDidFailToLoad', (error) =>
-      console.warn(error),
-    );
-    AdMobInterstitial.addEventListener(
-      'interstitialDidOpen',
-      () => console.log('AdMobInterstitial => adOpened'),
-      //await downloadToFolder(url, fileName, 'Insta Reels New', channelId),
-    );
-    AdMobInterstitial.addEventListener('interstitialDidClose', () => {
-      console.log('AdMobInterstitial => adClosed');
-      // AdMobInterstitial.requestAd().catch((error) => console.warn(error));
-    });
-    AdMobInterstitial.addEventListener('interstitialWillLeaveApplication', () =>
-      console.log('AdMobInterstitial => adLeftApplication'),
-    );
-
-    await AdMobInterstitial.requestAdAsync({servePersonalizedAds: true});
-    await AdMobInterstitial.showAdAsync();
-
-    await downloadToFolder(url, fileName, 'Insta Reels New', channelId);
-
-    // AdMobInterstitial.setAdUnitID(admobnterstitial);
-    // await AdMobInterstitial.requestAdAsync();
-    // await AdMobInterstitial.showAdAsync();
-    //  fireInterstitial();
-    // const downloadResumable = FileSystem.createDownloadResumable(
-    //   url,
-    //   FileSystem.documentDirectory +
-    //     pageUsername +
-    //     getDateTime() +
-    //     (type === 'GraphVideo' ? '.mp4' : '.jpg'),
-    //   {},
-    //   callback,
-    // );
-
-    // try {
-    //   const {uri} = await downloadResumable.downloadAsync();
-
-    //   console.log('Finished downloading ', uri);
-    //   //await downloadToFolder(uri, 'testing.mp4', 'Download', channelId);
-
-    //   const asset = await MediaLibrary.createAssetAsync(uri);
-    //   const album = await MediaLibrary.getAlbumAsync('Insta Reels');
-    //   if (album == null) {
-    //     await MediaLibrary.createAlbumAsync('Insta Reels', asset, false);
-    //   } else {
-    //     await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-    //   }
-    //   setLocalFileURI(uri);
-    //   Alert.alert('Downloaded successfully', 'Visit your gallery');
-    // } catch (e) {
-    //   console.error(e);
-    //   Alert.alert('Error', 'something went wrong');
-    // }
   };
 
   const onPressDownload = () => {
     console.log('download', enteredUrl);
+    setLoadingState(true);
     handleCheckUrl();
   };
 
@@ -253,13 +225,13 @@ const Home = () => {
           </TouchableOpacity>
           <View
             style={{
-              backgroundColor: 'red',
+              // backgroundColor: 'white',
               marginTop: 20,
               alignSelf: 'center',
             }}>
-            <AdMobBanner bannerSize="leaderboard" adUnitID={admobBanner} />
+            <AdMobBanner bannerSize="mediumRectangle" adUnitID={admobBanner} />
           </View>
-          <View
+          {/* <View
             style={{
               marginTop: 10,
               justifyContent: 'center',
@@ -267,19 +239,19 @@ const Home = () => {
             }}>
             <Video
               source={{
-                uri: localFilURI,
+                uri: videoUrl,
               }}
               rate={1.0}
               volume={1.0}
-              shouldPlay={true}
+              // shouldPlay={true}
               resizeMode={Video.RESIZE_MODE_CONTAIN}
-              useNativeControls={true}
+              useNativeControls
               style={{width: wp('80%'), height: wp('80%')}}
             />
-          </View>
+          </View> */}
         </View>
 
-        {/* {loadingState && (
+        {loadingState && (
           <View
             style={{
               position: 'absolute',
@@ -289,21 +261,12 @@ const Home = () => {
               bottom: 0,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
             }}>
-            <ProgressCircle
-              percent={currentProgress}
-              radius={70}
-              borderWidth={10}
-              color="red"
-              shadowColor="#999"
-              bgColor="#fff">
-              <Text style={{fontSize: 28}}>{`${currentProgress.toFixed(
-                2,
-              )}%`}</Text>
-            </ProgressCircle>
+            <BarIndicator color="white" count={6} size={50} />
+            {/* <ActivityIndicator size="large" color="white" /> */}
           </View>
-        )} */}
+        )}
       </ImageBackground>
     </SafeAreaView>
   );
