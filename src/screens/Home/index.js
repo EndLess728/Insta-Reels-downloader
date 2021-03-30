@@ -93,15 +93,11 @@ const Home = () => {
   useEffect(() => {
     onRequestPermission();
     setNotificationChannel();
-    // AdMobInterstitial.setAdUnitID(admobnterstitial);
+    AdMobRewarded.setAdUnitID(admobRewarded); // Test ID, Replace with your-admob-unit-id
   }, []);
 
   const fireInterstitial = async () => {
     console.log('hit ads');
-    await AdMobRewarded.setAdUnitID(admobRewarded); // Test ID, Replace with your-admob-unit-id
-    await AdMobRewarded.requestAdAsync();
-    // await AdMobRewarded.requestAdAsync({servePersonalizedAds: true});
-    await AdMobRewarded.showAdAsync();
 
     AdMobRewarded.addEventListener(
       'rewardedVideoDidLoad',
@@ -124,6 +120,8 @@ const Home = () => {
     AdMobRewarded.addEventListener('rewardedVideoWillLeaveApplication', () =>
       console.log('AdMobInterstitial => adLeftApplication'),
     );
+    await AdMobRewarded.requestAdAsync({servePersonalizedAds: true});
+    await AdMobRewarded.showAdAsync();
   };
 
   const onRequestPermission = async () => {
@@ -158,14 +156,19 @@ const Home = () => {
   };
 
   const downloadFile = async (url, type, pageUsername) => {
-    console.log('hihi0', url);
     setVideoUrl(url);
     const fileName =
       pageUsername + getDateTime() + (type === 'GraphVideo' ? '.mp4' : '.jpg');
     fireInterstitial();
-    await downloadToFolder(url, fileName, 'Insta Reels New', channelId).then(
-      setLoadingState(false),
-      console.log('donwloading finishedqwaaa'),
+    downloadToFolder(url, fileName, 'Insta Reels', channelId).then(
+      (checkbool) => {
+        if (checkbool) {
+          console.log('run only if it is true');
+        } else {
+          console.warn('Download me error hai');
+          setLoadingState(false);
+        }
+      },
     );
   };
 
